@@ -192,7 +192,8 @@ with tab_qa:
                     if use_llm:
                         st.warning("⚠️ LLM Synthesis was requested, but Gemini API did not return text. Fell back to extractive answer.")
 
-                st.markdown(f"### Answer\n> **{answer}**")
+                st.subheader("💡 Answer")
+                st.markdown(answer)
 
                 col_a, col_b, col_c, col_d = st.columns(4)
                 col_a.metric("Source Document", f"{doc_id}: {doc_title}")
@@ -205,7 +206,8 @@ with tab_qa:
                         st.info(excerpt)
             else:
                 st.error("🚫 Abstention Triggered (Out of Scope)")
-                st.markdown(f"### Answer\n> **{answer}**")
+                st.subheader("💡 Answer")
+                st.markdown(f"> *{answer}*")
                 st.info(
                     "Elena's Rule Enforced: This topic is not covered in Solstice documentation. "
                     "The assistant strictly abstains rather than hallucinating."
