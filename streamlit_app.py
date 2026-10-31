@@ -162,14 +162,18 @@ with tab_qa:
             mode = res.get("mode", "deterministic")
 
             if status == "answered":
-                st.success("✅ Documented Answer Found")
+                if mode == "llm":
+                    st.success("✨ Answer Synthesized by Gemini Flash (LLM Mode)")
+                else:
+                    st.success("✅ Answer Extracted Directly from Documentation (Extractive Mode)")
+
                 st.markdown(f"### Answer\n> **{answer}**")
 
                 col_a, col_b, col_c, col_d = st.columns(4)
                 col_a.metric("Source Document", f"{doc_id}: {doc_title}")
                 col_b.metric("Confidence Score", f"{confidence:.3f}")
                 col_c.metric("Latency", f"{latency:.1f} ms")
-                col_d.metric("Engine", "Gemini 768d" if res.get("gemini_enabled") else "Offline BM25")
+                col_d.metric("Answer Mode", "Gemini Flash" if mode == "llm" else "Extractive")
 
                 if excerpt:
                     with st.expander("📄 Supporting Documentation Excerpt", expanded=True):

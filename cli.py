@@ -88,7 +88,8 @@ def cmd_ask(args):
     print(f"CONFIDENCE: {result['confidence_score']:.4f}")
     gemini_str = "ACTIVE (Gemini text-embedding-004)" if result.get("gemini_enabled") else "INACTIVE (Offline BM25)"
     print(f"GEMINI:     {gemini_str}")
-    print(f"MODE:       {result['mode']}")
+    mode_str = "llm (Synthesized by Gemini Flash)" if result.get("mode") == "llm" else "deterministic (Extracted from Documentation)"
+    print(f"MODE:       {mode_str}")
     print(f"LATENCY:    {elapsed:.1f} ms")
     if result.get("supporting_excerpt"):
         print(f"EXCERPT:    {result['supporting_excerpt']}")

@@ -107,7 +107,7 @@ class GeminiClient:
         }
         data = json.dumps(payload).encode("utf-8")
 
-        for gen_model in ["gemini-2.5-flash", "gemini-1.5-flash"]:
+        for gen_model in ["gemini-3.8-flash", "gemini-flash-latest", "gemini-pro-latest"]:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{gen_model}:generateContent?key={api_key}"
             req = urllib.request.Request(
                 url,
