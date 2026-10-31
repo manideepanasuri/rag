@@ -16,6 +16,7 @@ class AskResponse(BaseModel):
     confidence_score: float = Field(..., description="Hybrid or BM25 retrieval confidence score")
     supporting_excerpt: str | None = Field(None, description="Exact document context excerpt or null")
     mode: str = Field(..., description="'deterministic' or 'llm'")
+    llm_model: str | None = Field(None, description="Name of the Gemini model used for answer synthesis if mode is llm")
     gemini_enabled: bool = Field(False, description="Whether Gemini embeddings and semantic search were used")
 
 

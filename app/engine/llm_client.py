@@ -14,7 +14,7 @@ class GeminiClient:
     Zero external SDK dependency.
     """
 
-    def __init__(self, timeout: float = 8.0):
+    def __init__(self, timeout: float = 12.0):
         self.timeout = timeout
 
     def get_embedding(self, text: str, api_key: str) -> list[float] | None:
@@ -75,12 +75,24 @@ class GeminiClient:
         api_key: str,
     ) -> str | None:
         """
-        Generate a grounded natural answer using Gemini 2.5 Flash / 1.5 Flash.
+        Generate a grounded natural answer using Gemini Flash.
         Strictly enforces the abstention rule: if context does not answer, returns
         'I don't have an answer for that.'
         """
+        answer, _ = self.generate_grounded_answer_with_model(question, context, api_key)
+        return answer
+
+    def generate_grounded_answer_with_model(
+        self,
+        question: str,
+        context: str,
+        api_key: str,
+    ) -> tuple[str | None, str | None]:
+        """
+        Generate grounded answer and return (answer_text, model_name).
+        """
         if not api_key or not context.strip():
-            return None
+            return None, None
 
         prompt = (
             "You are a factual support assistant for Solstice Learning. "
@@ -107,7 +119,12 @@ class GeminiClient:
         }
         data = json.dumps(payload).encode("utf-8")
 
-        for gen_model in ["gemini-3.8-flash", "gemini-flash-latest", "gemini-pro-latest"]:
+        for gen_model in [
+            "gemini-flash-lite-latest",
+            "gemini-3.5-flash-lite",
+            "gemini-3.1-flash-lite",
+            "gemini-flash-latest",
+        ]:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{gen_model}:generateContent?key={api_key}"
             req = urllib.request.Request(
                 url,
@@ -124,10 +141,10 @@ class GeminiClient:
                         parts = candidates[0].get("content", {}).get("parts", [])
                         if parts:
                             text = parts[0].get("text", "").strip()
-                            return text
+                            return text, gen_model
             except Exception as e:
                 logger.debug("Gemini generation model %s failed: %s", gen_model, e)
                 continue
 
         logger.warning("All Gemini generation model attempts failed")
-        return None
+        return None, None

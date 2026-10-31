@@ -126,6 +126,7 @@ class DocsQAService:
                 "confidence_score": 0.0,
                 "supporting_excerpt": None,
                 "mode": "deterministic",
+                "llm_model": None,
                 "gemini_enabled": gemini_active,
             }
 
@@ -151,6 +152,7 @@ class DocsQAService:
                 "confidence_score": 0.0,
                 "supporting_excerpt": None,
                 "mode": "deterministic",
+                "llm_model": None,
                 "gemini_enabled": gemini_active,
             }
 
@@ -171,20 +173,29 @@ class DocsQAService:
                 "confidence_score": round(top_score, 4),
                 "supporting_excerpt": None,
                 "mode": "deterministic",
+                "llm_model": None,
                 "gemini_enabled": gemini_active,
             }
 
         # Step 6: Generate answer (Deterministic extraction or Grounded LLM)
         mode = "deterministic"
+        llm_model_name = None
         answer = extract_answer_pinpoint(clean_q, top_chunk["text"])
 
-        if use_llm and settings.gemini_api_key:
-            grounded = self.llm_client.generate_grounded_answer(
-                clean_q, top_chunk["text"], settings.gemini_api_key
-            )
-            if grounded:
-                answer = grounded
-                mode = "llm"
+        effective_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
+        if use_llm:
+            if effective_key:
+                grounded, model_used = self.llm_client.generate_grounded_answer_with_model(
+                    clean_q, top_chunk["text"], effective_key
+                )
+                if grounded:
+                    answer = grounded
+                    mode = "llm"
+                    llm_model_name = model_used
+                else:
+                    logger.warning("Gemini Flash failed to generate answer; keeping extractive answer")
+            else:
+                logger.warning("use_llm=True requested but GEMINI_API_KEY is not configured")
 
         return {
             "status": "answered",
@@ -194,6 +205,7 @@ class DocsQAService:
             "confidence_score": round(top_score, 4),
             "supporting_excerpt": top_chunk["text"],
             "mode": mode,
+            "llm_model": llm_model_name,
             "gemini_enabled": gemini_active,
         }
 

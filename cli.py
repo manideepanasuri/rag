@@ -86,9 +86,10 @@ def cmd_ask(args):
     print(f"ANSWER:     {result['answer']}")
     print(f"SOURCE DOC: {result.get('doc_id') or 'None'} ({result.get('doc_title') or 'N/A'})")
     print(f"CONFIDENCE: {result['confidence_score']:.4f}")
-    gemini_str = "ACTIVE (Gemini text-embedding-004)" if result.get("gemini_enabled") else "INACTIVE (Offline BM25)"
+    gemini_str = "ACTIVE (Gemini gemini-embedding-001)" if result.get("gemini_enabled") else "INACTIVE (Offline BM25)"
     print(f"GEMINI:     {gemini_str}")
-    mode_str = "llm (Synthesized by Gemini Flash)" if result.get("mode") == "llm" else "deterministic (Extracted from Documentation)"
+    model_name = result.get("llm_model")
+    mode_str = f"llm (Synthesized by Gemini Flash: {model_name or 'gemini-flash-lite-latest'})" if result.get("mode") == "llm" else "deterministic (Extracted from Documentation)"
     print(f"MODE:       {mode_str}")
     print(f"LATENCY:    {elapsed:.1f} ms")
     if result.get("supporting_excerpt"):

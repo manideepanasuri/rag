@@ -53,7 +53,7 @@ def ask_api_or_service(question: str, use_llm: bool = False):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=3.0) as resp:
+        with urllib.request.urlopen(req, timeout=20.0) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except Exception:
         # Fall back to cached local service
@@ -65,7 +65,7 @@ def fetch_docs():
     try:
         url = f"{settings.backend_url}/api/v1/docs"
         req = urllib.request.Request(url, method="GET")
-        with urllib.request.urlopen(req, timeout=3.0) as resp:
+        with urllib.request.urlopen(req, timeout=10.0) as resp:
             return json.loads(resp.read().decode("utf-8")), True
     except Exception:
         service, db = get_service()
@@ -83,7 +83,7 @@ def post_doc(doc_id: str, title: str, content: str):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=5.0) as resp:
+        with urllib.request.urlopen(req, timeout=15.0) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except Exception:
         service, db = get_service()
@@ -100,6 +100,8 @@ with st.sidebar:
     if gemini_key_present:
         st.success("✨ Gemini Semantic Vectors: ACTIVE")
         st.caption("Model: gemini-embedding-001 (768-dim)")
+        st.success("⚡ Gemini Flash Generation: READY")
+        st.caption("Model: gemini-flash-lite-latest")
     else:
         st.warning("⚙️ Gemini: NOT CONFIGURED")
         st.caption("Running pure deterministic BM25 search (Offline)")
@@ -162,8 +164,10 @@ with tab_qa:
             mode = res.get("mode", "deterministic")
 
             if status == "answered":
+                llm_model = res.get("llm_model")
                 if mode == "llm":
-                    st.success("✨ Answer Synthesized by Gemini Flash (LLM Mode)")
+                    model_label = llm_model or "gemini-flash-lite-latest"
+                    st.success(f"✨ Answer Synthesized by Gemini Flash ({model_label})")
                 else:
                     st.success("✅ Answer Extracted Directly from Documentation (Extractive Mode)")
 
@@ -173,7 +177,7 @@ with tab_qa:
                 col_a.metric("Source Document", f"{doc_id}: {doc_title}")
                 col_b.metric("Confidence Score", f"{confidence:.3f}")
                 col_c.metric("Latency", f"{latency:.1f} ms")
-                col_d.metric("Answer Mode", "Gemini Flash" if mode == "llm" else "Extractive")
+                col_d.metric("Answer Mode", f"Gemini Flash ({llm_model or 'Flash'})" if mode == "llm" else "Extractive")
 
                 if excerpt:
                     with st.expander("📄 Supporting Documentation Excerpt", expanded=True):
