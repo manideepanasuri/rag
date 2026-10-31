@@ -1,0 +1,34 @@
+{
+  "docs": [
+    {
+      "doc_id": "D-01",
+      "title": "Resetting Your Password",
+      "content": "If you've forgotten your password, click 'Forgot password?' on the login screen and enter the email address associated with your account. We'll send you a reset link right away. Click the link and choose a new password that's at least 8 characters long, with at least one number. Once you've set a new password, you'll be logged out of all other active sessions for security. If you don't see the email within a few minutes, check your spam folder, and confirm you're using the same email your admin originally invited you with. Note: password reset links expire after 15 minutes. If yours has expired, don't try to reuse the old email -- just go back to the login page and request a brand new reset link."
+    },
+    {
+      "doc_id": "D-02",
+      "title": "Inviting Team Members",
+      "content": "Admins can invite new team members from Settings > Team > Invite Member. Enter their email address and choose a role (Viewer, Editor, or Admin). They'll receive an email invitation with a link to set up their account."
+    },
+    {
+      "doc_id": "D-03",
+      "title": "Exporting Reports to CSV",
+      "content": "Any report can be exported to CSV from the report toolbar by clicking the download icon and selecting 'Export as CSV'. The export includes all currently visible columns and respects any filters you've applied to the report. Large exports may take a minute or two to generate, and you'll get a notification when the file is ready to download. Exports are retained for 7 days before being automatically deleted from your download history, so be sure to save a local copy if you'll need it later. Important limit: CSV exports are capped at 10,000 rows. If your report has more rows than that, apply additional filters to narrow it down, or contact support about a bulk data export instead."
+    },
+    {
+      "doc_id": "D-04",
+      "title": "Understanding Billing Cycles",
+      "content": "Your billing cycle starts on the day you first subscribed and renews monthly on that same date. Invoices are emailed to your billing contact 3 days before each renewal. You can update your billing contact or payment method anytime from Settings > Billing. If a renewal charge fails, we'll retry twice over the following week before pausing your account. Refunds for annual plans canceled within the first 30 days are available on request."
+    },
+    {
+      "doc_id": "D-05",
+      "title": "Setting Up Single Sign-On (SSO)",
+      "content": "Enterprise plans support SSO via SAML 2.0. To set it up, go to Settings > Security > SSO and provide your identity provider's metadata URL. Once configured, all team members will be redirected to your identity provider to log in."
+    },
+    {
+      "doc_id": "D-06",
+      "title": "API Rate Limits",
+      "content": "The Solstice API is available on Growth and Enterprise plans. All endpoints are authenticated with an API key passed in the Authorization header. Responses are returned as JSON, and pagination is handled via a `next_cursor` field in the response body. We recommend caching responses where possible to avoid unnecessary repeat calls, especially for endpoints that return large datasets. Rate limits: Growth plans are limited to 60 requests per minute, and Enterprise plans are limited to 300 requests per minute, per API key. Exceeding the limit returns an HTTP 429 response."
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  backend:
+    build: .
+    container_name: solstice-docs-backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./docs_qa.db
+      - QDRANT_STORAGE_PATH=./qdrant_storage
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - CONFIDENCE_THRESHOLD=0.35
+    volumes:
+      - ./docs_data:/app/docs_data
+    restart: unless-stopped
+
+  frontend:
+    build: .
+    container_name: solstice-docs-frontend
+    command: streamlit run streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_URL=http://backend:8000
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    depends_on:
+      - backend
+    restart: unless-stopped
