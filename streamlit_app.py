@@ -8,17 +8,23 @@ import streamlit as st
 try:
     if hasattr(st, "secrets"):
         for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "CONFIDENCE_THRESHOLD", "BACKEND_URL", "DATABASE_URL"]:
-            if key in st.secrets and st.secrets[key]:
+            val = None
+            if key in st.secrets:
                 val = str(st.secrets[key])
+            elif key.lower() in st.secrets:
+                val = str(st.secrets[key.lower()])
+            if val:
                 os.environ[key] = val
+                os.environ[key.lower()] = val
 except Exception:
     pass
 
 from app.config import settings
 
 # Ensure settings picks up any newly synced keys
-if os.getenv("GEMINI_API_KEY") and not settings.gemini_api_key:
-    settings.gemini_api_key = os.getenv("GEMINI_API_KEY")
+effective_key = os.getenv("GEMINI_API_KEY") or os.getenv("gemini_api_key") or ""
+if effective_key:
+    settings.gemini_api_key = effective_key
 
 from app.db.models import Document
 from app.db.seeder import seed_docs_if_empty
@@ -33,13 +39,18 @@ st.set_page_config(
 
 
 @st.cache_resource
-def get_service():
+def get_service(key_fingerprint: str = ""):
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     seed_docs_if_empty(db)
     service = DocsQAService()
     service.initialize(db)
     return service, db
+
+
+def get_current_service():
+    fingerprint = (settings.gemini_api_key or os.getenv("GEMINI_API_KEY", ""))[:8]
+    return get_service(key_fingerprint=fingerprint)
 
 
 def ask_api_or_service(question: str, use_llm: bool = False):
@@ -57,7 +68,7 @@ def ask_api_or_service(question: str, use_llm: bool = False):
             return json.loads(resp.read().decode("utf-8"))
     except Exception:
         # Fall back to cached local service
-        service, _ = get_service()
+        service, _ = get_current_service()
         return service.ask(question, use_llm=use_llm)
 
 
@@ -68,7 +79,7 @@ def fetch_docs():
         with urllib.request.urlopen(req, timeout=10.0) as resp:
             return json.loads(resp.read().decode("utf-8")), True
     except Exception:
-        service, db = get_service()
+        service, db = get_current_service()
         docs = service.list_docs(db)
         return [{"doc_id": d.id, "title": d.title, "content": d.content} for d in docs], False
 
@@ -86,7 +97,7 @@ def post_doc(doc_id: str, title: str, content: str):
         with urllib.request.urlopen(req, timeout=15.0) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except Exception:
-        service, db = get_service()
+        service, db = get_current_service()
         service.add_or_update_doc(db=db, doc_id=doc_id, title=title, content=content)
         return {"status": "ok"}
 
