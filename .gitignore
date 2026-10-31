@@ -12,3 +12,5 @@ htmlcov/
 qdrant_storage/
 .env
 .DS_Store
+.streamlit/secrets.toml
+.streamlit/

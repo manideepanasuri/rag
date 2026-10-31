@@ -4,7 +4,22 @@ import time
 import urllib.request
 import streamlit as st
 
+# Sync Streamlit secrets to environment and settings if present
+try:
+    if hasattr(st, "secrets"):
+        for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "CONFIDENCE_THRESHOLD", "BACKEND_URL", "DATABASE_URL"]:
+            if key in st.secrets and st.secrets[key]:
+                val = str(st.secrets[key])
+                os.environ[key] = val
+except Exception:
+    pass
+
 from app.config import settings
+
+# Ensure settings picks up any newly synced keys
+if os.getenv("GEMINI_API_KEY") and not settings.gemini_api_key:
+    settings.gemini_api_key = os.getenv("GEMINI_API_KEY")
+
 from app.db.models import Document
 from app.db.seeder import seed_docs_if_empty
 from app.db.session import Base, SessionLocal, engine
@@ -17,6 +32,7 @@ st.set_page_config(
 )
 
 
+@st.cache_resource
 def get_service():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
@@ -77,6 +93,30 @@ def post_doc(doc_id: str, title: str, content: str):
 
 st.title("📚 Solstice Learning — Documentation Q&A")
 st.caption("Factual, hallucination-free support assistant for Solstice Learning platform administrators.")
+
+with st.sidebar:
+    st.header("⚙️ Engine Status")
+    gemini_key_present = bool(settings.gemini_api_key or os.getenv("GEMINI_API_KEY"))
+    if gemini_key_present:
+        st.success("✨ Gemini Semantic Vectors: ACTIVE")
+        st.caption("Model: gemini-embedding-001 (768-dim)")
+    else:
+        st.warning("⚙️ Gemini: NOT CONFIGURED")
+        st.caption("Running pure deterministic BM25 search (Offline)")
+
+    # Test backend connection
+    is_backend_online = False
+    try:
+        req = urllib.request.Request(f"{settings.backend_url}/api/v1/health", method="GET")
+        with urllib.request.urlopen(req, timeout=1.0) as r:
+            is_backend_online = (r.status == 200)
+    except Exception:
+        is_backend_online = False
+
+    if is_backend_online:
+        st.success(f"🟢 Backend API: CONNECTED ({settings.backend_url})")
+    else:
+        st.info("ℹ️ Backend API: STANDALONE MODE (running engine in-process)")
 
 tab_qa, tab_eval, tab_kb = st.tabs([
     "💬 Support Q&A",
@@ -221,9 +261,9 @@ with tab_kb:
     docs, is_live_api = fetch_docs()
 
     if is_live_api:
-        st.success(f"🟢 Connected to FastAPI Server ({settings.backend_url})")
+        st.success(f"🟢 Syncing with FastAPI REST Server ({settings.backend_url})")
     else:
-        st.info("🟠 Running in Local Embedded Mode")
+        st.info("ℹ️ Running in Standalone In-Process Mode (FastAPI server not detected on port 8000)")
 
     st.write(f"Currently indexing **{len(docs)} documents**.")
 
