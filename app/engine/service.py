@@ -133,18 +133,24 @@ class DocsQAService:
                 "gemini_enabled": gemini_active,
             }
 
-        # Step 2: BM25 lexical search
-        bm25_hits = self.bm25_index.search(clean_q, top_k=3)
-        vector_hits: list[tuple[float, dict[str, Any]]] = []
-
-        # Step 3: Dense vector search if Gemini API key configured
-        if effective_key:
+        # Step 2: Retrieval
+        if use_llm and effective_key:
+            # Pure Semantic Vector Retrieval for LLM (No BM25)
+            logger.info("⚡ [RETRIEVAL] LLM Mode: Pure Semantic Dense Vector Search via Qdrant (0%% BM25)")
             q_emb = self.llm_client.get_embedding(clean_q, effective_key)
             if q_emb:
-                vector_hits = self.vector_store.search(q_emb, top_k=3)
-
-        # Step 4: Hybrid score blending
-        ranked = combine_hybrid_scores(bm25_hits, vector_hits, alpha=0.6, top_k=3)
+                ranked = self.vector_store.search(q_emb, top_k=3)
+            else:
+                ranked = []
+        else:
+            # Deterministic Extractive / Offline Mode (BM25 + Hybrid)
+            bm25_hits = self.bm25_index.search(clean_q, top_k=3)
+            vector_hits: list[tuple[float, dict[str, Any]]] = []
+            if effective_key:
+                q_emb = self.llm_client.get_embedding(clean_q, effective_key)
+                if q_emb:
+                    vector_hits = self.vector_store.search(q_emb, top_k=3)
+            ranked = combine_hybrid_scores(bm25_hits, vector_hits, alpha=0.6, top_k=3) if vector_hits else bm25_hits
 
         if not ranked:
             return {
