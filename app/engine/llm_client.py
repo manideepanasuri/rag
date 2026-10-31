@@ -116,8 +116,8 @@ class GeminiClient:
                 }
             ],
             "generationConfig": {
-                "temperature": 0.3,
-                "maxOutputTokens": 500,
+                "temperature": 0.1,
+                "maxOutputTokens": 1000,
             }
         }
         data = json.dumps(payload).encode("utf-8")
