@@ -57,7 +57,7 @@ def query_qa(
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=10.0) as resp:
+        with urllib.request.urlopen(req, timeout=35.0) as resp:
             return json.loads(resp.read().decode("utf-8"))
     else:
         return handler.ask(

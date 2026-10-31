@@ -88,6 +88,7 @@ class GeminiClient:
         question: str,
         context: str,
         api_key: str,
+        temperature: float = 0.5,
     ) -> tuple[str | None, str | None]:
         """
         Generate grounded answer and return (answer_text, model_name).
@@ -116,7 +117,7 @@ class GeminiClient:
                 }
             ],
             "generationConfig": {
-                "temperature": 0.1,
+                "temperature": temperature,
                 "maxOutputTokens": 1000,
             }
         }

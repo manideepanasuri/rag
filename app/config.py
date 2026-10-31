@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     backend_url: str = "http://localhost:8000"
     confidence_threshold: float = 0.35
+    llm_temperature: float = 0.5
     docs_seed_path: str = "starter_kit/data/docs.json"
 
     model_config = SettingsConfigDict(

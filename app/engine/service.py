@@ -186,26 +186,28 @@ class DocsQAService:
                 "gemini_enabled": gemini_active,
             }
 
-        # Step 6: Assemble complete context for the matched document
-        # Load all chunks for this document in natural order so Gemini has the full article
+        # Step 6: Assemble top 3 most relevant chunks into context for the LLM
         primary_doc_id = top_chunk["doc_id"]
-        matched_doc_chunks = [
-            c for c in self.chunks
-            if c.get("doc_id") == primary_doc_id
+        top_3_chunks = [chunk for _, chunk in ranked[:3]]
+        context_blocks = [
+            f"[{c.get('doc_id')}: {c.get('title')}]\n{c.get('text', '').strip()}"
+            for c in top_3_chunks
         ]
-        matched_doc_chunks.sort(key=lambda x: x.get("chunk_index", 0))
-        assembled_context = "\n\n".join(c["text"] for c in matched_doc_chunks) if matched_doc_chunks else top_chunk["text"]
+        assembled_context = "\n\n".join(context_blocks)
 
         # Step 7: Generate answer (Deterministic extraction or Grounded LLM)
         mode = "deterministic"
         llm_model_name = None
-        answer = extract_answer_pinpoint(clean_q, assembled_context)
+        answer = extract_answer_pinpoint(clean_q, top_chunk["text"])
 
         effective_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
         if use_llm:
             if effective_key:
                 grounded, model_used = self.llm_client.generate_grounded_answer_with_model(
-                    clean_q, assembled_context, effective_key
+                    clean_q,
+                    assembled_context,
+                    effective_key,
+                    temperature=settings.llm_temperature,
                 )
                 if grounded:
                     if "i don't have an answer for that" in grounded.lower():
