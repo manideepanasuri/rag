@@ -71,7 +71,7 @@ def ask_api_or_service(question: str, use_llm: bool = False):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=20.0) as resp:
+        with urllib.request.urlopen(req, timeout=35.0) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except Exception:
         # Fall back to cached local service

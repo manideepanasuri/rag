@@ -39,16 +39,17 @@ class DocsQAService:
             url=settings.qdrant_url,
         )
         self.chunks: list[dict[str, Any]] = []
+        self.docs: list[dict[str, Any]] = []
 
     def initialize(self, db: Session) -> None:
         """Load documents from DB, chunk them, build BM25 and Qdrant indices."""
-        docs = db.query(Document).all()
-        doc_dicts = [
-            {"id": d.id, "title": d.title, "content": d.content}
+        docs = db.query(Document).order_by(Document.id).all()
+        self.docs = [
+            {"id": d.id, "doc_id": d.id, "title": d.title, "content": d.content}
             for d in docs
         ]
 
-        self.chunks = chunk_all_documents(doc_dicts)
+        self.chunks = chunk_all_documents(self.docs)
         self.bm25_index.index_chunks(self.chunks)
         self.coverage_gate.update_corpus_vocabulary(self.chunks)
 
@@ -81,6 +82,27 @@ class DocsQAService:
             logger.info("✨ [GEMINI STATUS] Successfully indexed %d chunks into Qdrant vector store", len(self.chunks))
         else:
             logger.info("⚙️ [GEMINI STATUS] INACTIVE: GEMINI_API_KEY not set. Using pure deterministic BM25 lexical search (100%% offline)")
+
+    def get_all_docs_context(self) -> str:
+        """Assemble all documents in the knowledge base into structured context for the LLM."""
+        if self.docs:
+            blocks = [
+                f"[{d['doc_id']}: {d['title']}]\n{d['content'].strip()}"
+                for d in self.docs
+            ]
+            return "\n\n".join(blocks)
+        if self.chunks:
+            grouped: dict[str, list[str]] = {}
+            titles: dict[str, str] = {}
+            for c in self.chunks:
+                did = c.get("doc_id", "")
+                titles[did] = c.get("title", "")
+                grouped.setdefault(did, []).append(c.get("text", "").strip())
+            blocks = []
+            for did, texts in grouped.items():
+                blocks.append(f"[{did}: {titles.get(did, '')}]\n" + "\n\n".join(texts))
+            return "\n\n".join(blocks)
+        return ""
 
     def ask(
         self,
@@ -186,14 +208,14 @@ class DocsQAService:
                 "gemini_enabled": gemini_active,
             }
 
-        # Step 6: Assemble top 3 most relevant chunks into context for the LLM
+        # Step 6: Assemble all documents in knowledge base into context for the LLM
         primary_doc_id = top_chunk["doc_id"]
-        top_3_chunks = [chunk for _, chunk in ranked[:3]]
-        context_blocks = [
-            f"[{c.get('doc_id')}: {c.get('title')}]\n{c.get('text', '').strip()}"
-            for c in top_3_chunks
-        ]
-        assembled_context = "\n\n".join(context_blocks)
+        all_docs_context = self.get_all_docs_context()
+        if not all_docs_context:
+            all_docs_context = "\n\n".join(
+                f"[{c.get('doc_id')}: {c.get('title')}]\n{c.get('text', '').strip()}"
+                for _, c in ranked[:3]
+            )
 
         # Step 7: Generate answer (Deterministic extraction or Grounded LLM)
         mode = "deterministic"
@@ -203,9 +225,10 @@ class DocsQAService:
         effective_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
         if use_llm:
             if effective_key:
+                logger.info("📚 [CONTEXT] Sending ALL %d documents in knowledge base to LLM context", len(self.docs))
                 grounded, model_used = self.llm_client.generate_grounded_answer_with_model(
                     clean_q,
-                    assembled_context,
+                    all_docs_context,
                     effective_key,
                     temperature=settings.llm_temperature,
                 )
@@ -227,7 +250,7 @@ class DocsQAService:
             "doc_id": top_chunk["doc_id"],
             "doc_title": top_chunk["title"],
             "confidence_score": round(top_score, 4),
-            "supporting_excerpt": assembled_context,
+            "supporting_excerpt": all_docs_context if mode == "llm" else top_chunk["text"],
             "mode": mode,
             "llm_model": llm_model_name,
             "gemini_enabled": gemini_active,
