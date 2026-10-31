@@ -143,13 +143,14 @@ with tab_qa:
             placeholder="Type your question here...",
         )
     with col2:
-        use_llm = st.toggle("LLM Synthesis", value=False, help="Requires GEMINI_API_KEY")
+        default_llm = bool(settings.gemini_api_key or os.getenv("GEMINI_API_KEY"))
+        use_llm = st.toggle("LLM Synthesis", value=default_llm, help="Uses Gemini Flash to synthesize answers when active")
 
     if st.button("Submit Question", type="primary"):
         if not user_question.strip():
             st.warning("Please enter a question.")
         else:
-            with st.spinner("Searching documentation..."):
+            with st.spinner("Searching documentation and synthesizing answer..."):
                 start_time = time.perf_counter()
                 res = ask_api_or_service(user_question, use_llm=use_llm)
                 latency = (time.perf_counter() - start_time) * 1000
@@ -170,6 +171,8 @@ with tab_qa:
                     st.success(f"✨ Answer Synthesized by Gemini Flash ({model_label})")
                 else:
                     st.success("✅ Answer Extracted Directly from Documentation (Extractive Mode)")
+                    if use_llm:
+                        st.warning("⚠️ LLM Synthesis was requested, but Gemini API did not return text. Fell back to extractive answer.")
 
                 st.markdown(f"### Answer\n> **{answer}**")
 

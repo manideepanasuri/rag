@@ -65,12 +65,13 @@ class DocsQAService:
         db.commit()
 
         # Seed Qdrant embeddings if Gemini API key is available
-        if settings.gemini_api_key:
-            logger.info("✨ [GEMINI STATUS] ACTIVE: GEMINI_API_KEY detected. Indexing chunks with text-embedding-004 into Qdrant...")
+        api_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
+        if api_key:
+            logger.info("✨ [GEMINI STATUS] ACTIVE: GEMINI_API_KEY detected. Indexing chunks with gemini-embedding-001 into Qdrant...")
             embeddings: list[list[float]] = []
             for c in self.chunks:
                 emb = self.llm_client.get_embedding(
-                    f"{c['title']}: {c['text']}", settings.gemini_api_key
+                    f"{c['title']}: {c['text']}", api_key
                 )
                 if emb:
                     embeddings.append(emb)
@@ -93,7 +94,8 @@ class DocsQAService:
         returns 'I don't have an answer for that.'
         """
         clean_q = question.strip()
-        gemini_active = bool(settings.gemini_api_key)
+        effective_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
+        gemini_active = bool(effective_key)
 
         if not clean_q:
             return {
@@ -104,13 +106,14 @@ class DocsQAService:
                 "confidence_score": 0.0,
                 "supporting_excerpt": None,
                 "mode": "deterministic",
+                "llm_model": None,
                 "gemini_enabled": gemini_active,
             }
 
         logger.info(
             "🔍 [QUERY] '%s' | Gemini Semantic Embeddings: %s | Mode Requested: %s",
             clean_q,
-            "ACTIVE (text-embedding-004)" if gemini_active else "INACTIVE (BM25 only)",
+            "ACTIVE (gemini-embedding-001)" if gemini_active else "INACTIVE (BM25 only)",
             "LLM Synthesis" if (use_llm and gemini_active) else "Deterministic Pinpoint",
         )
 
@@ -135,8 +138,8 @@ class DocsQAService:
         vector_hits: list[tuple[float, dict[str, Any]]] = []
 
         # Step 3: Dense vector search if Gemini API key configured
-        if settings.gemini_api_key:
-            q_emb = self.llm_client.get_embedding(clean_q, settings.gemini_api_key)
+        if effective_key:
+            q_emb = self.llm_client.get_embedding(clean_q, effective_key)
             if q_emb:
                 vector_hits = self.vector_store.search(q_emb, top_k=3)
 
