@@ -186,20 +186,15 @@ class DocsQAService:
                 "gemini_enabled": gemini_active,
             }
 
-        # Step 6: Assemble multi-chunk context for the matched document
-        # If other top-ranked chunks belong to the same document, combine them in document order
+        # Step 6: Assemble complete context for the matched document
+        # Load all chunks for this document in natural order so Gemini has the full article
         primary_doc_id = top_chunk["doc_id"]
-        doc_chunks = [
-            c for _, c in ranked
+        matched_doc_chunks = [
+            c for c in self.chunks
             if c.get("doc_id") == primary_doc_id
         ]
-        doc_chunks.sort(key=lambda x: x.get("chunk_index", 0))
-
-        assembled_parts = []
-        for c in doc_chunks:
-            if c["text"] not in assembled_parts:
-                assembled_parts.append(c["text"])
-        assembled_context = "\n\n".join(assembled_parts) if assembled_parts else top_chunk["text"]
+        matched_doc_chunks.sort(key=lambda x: x.get("chunk_index", 0))
+        assembled_context = "\n\n".join(c["text"] for c in matched_doc_chunks) if matched_doc_chunks else top_chunk["text"]
 
         # Step 7: Generate answer (Deterministic extraction or Grounded LLM)
         mode = "deterministic"
@@ -213,9 +208,12 @@ class DocsQAService:
                     clean_q, assembled_context, effective_key
                 )
                 if grounded:
-                    answer = grounded
-                    mode = "llm"
-                    llm_model_name = model_used
+                    if "i don't have an answer for that" in grounded.lower():
+                        logger.warning("Gemini LLM returned abstention on matched doc %s; falling back to extractive answer", primary_doc_id)
+                    else:
+                        answer = grounded
+                        mode = "llm"
+                        llm_model_name = model_used
                 else:
                     logger.warning("Gemini Flash failed to generate answer; keeping extractive answer")
             else:

@@ -98,10 +98,10 @@ class GeminiClient:
 
         prompt = (
             "You are a friendly, knowledgeable documentation assistant for Solstice Learning.\n"
-            "Synthesize a helpful, conversational, and clear answer to the user's question using the provided context.\n"
-            "Feel free to explain the workflow clearly, format steps or bullet points, and include relevant tips from the text.\n"
+            "Synthesize a helpful, conversational, and clear answer to the user's question using the provided documentation context.\n"
+            "Explain the relevant workflow, steps, or details clearly using the information in the context.\n"
             "CRITICAL BOUNDARY: Base your answer strictly on the facts in the provided context. "
-            "If the documentation does not contain the answer, you must respond with: "
+            "Only if the documentation context genuinely does not contain or mention the topic at all, reply with: "
             "\"I don't have an answer for that.\"\n\n"
             f"Documentation Context:\n{context}\n\n"
             f"User Question:\n{question}\n\n"
