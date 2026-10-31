@@ -11,6 +11,7 @@ def utcnow():
 
 class Document(Base):
     __tablename__ = "documents"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String, primary_key=True, index=True)
     title = Column(String, nullable=False)
@@ -23,6 +24,7 @@ class Document(Base):
 
 class Chunk(Base):
     __tablename__ = "chunks"
+    __table_args__ = {"extend_existing": True}
 
     id = Column(String, primary_key=True, index=True)
     doc_id = Column(String, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True)

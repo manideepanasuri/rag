@@ -23,6 +23,7 @@ class GeminiClient:
         Tries gemini-embedding-001 (with 768 dim) then text-embedding-004.
         Returns None if API key is empty or request fails.
         """
+        api_key = api_key.strip().strip('"').strip("'")
         if not api_key or not text.strip():
             return None
 
@@ -91,6 +92,7 @@ class GeminiClient:
         """
         Generate grounded answer and return (answer_text, model_name).
         """
+        api_key = api_key.strip().strip('"').strip("'")
         if not api_key or not context.strip():
             return None, None
 
@@ -143,7 +145,7 @@ class GeminiClient:
                             text = parts[0].get("text", "").strip()
                             return text, gen_model
             except Exception as e:
-                logger.debug("Gemini generation model %s failed: %s", gen_model, e)
+                logger.warning("Gemini generation model %s failed: %s", gen_model, e)
                 continue
 
         logger.warning("All Gemini generation model attempts failed")

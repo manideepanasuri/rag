@@ -1,8 +1,15 @@
 import json
 import os
+import sys
 import time
 import urllib.request
+from pathlib import Path
 import streamlit as st
+
+# Ensure repository root is on sys.path for robust relative imports on Streamlit Cloud
+ROOT_DIR = Path(__file__).resolve().parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 # Sync Streamlit secrets to environment and settings if present
 try:
@@ -10,9 +17,9 @@ try:
         for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "CONFIDENCE_THRESHOLD", "BACKEND_URL", "DATABASE_URL"]:
             val = None
             if key in st.secrets:
-                val = str(st.secrets[key])
+                val = str(st.secrets[key]).strip().strip('"').strip("'")
             elif key.lower() in st.secrets:
-                val = str(st.secrets[key.lower()])
+                val = str(st.secrets[key.lower()]).strip().strip('"').strip("'")
             if val:
                 os.environ[key] = val
                 os.environ[key.lower()] = val
