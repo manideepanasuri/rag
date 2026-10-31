@@ -97,14 +97,15 @@ class GeminiClient:
             return None, None
 
         prompt = (
-            "You are a factual support assistant for Solstice Learning. "
-            "Answer the question using ONLY the provided documentation context below. "
-            "If the context does not completely answer the question, or if you are unsure, "
-            "you MUST reply with the exact phrase: \"I don't have an answer for that.\" "
-            "Never guess or extrapolate.\n\n"
-            f"Context:\n{context}\n\n"
-            f"Question:\n{question}\n\n"
-            "Answer:"
+            "You are a friendly, knowledgeable documentation assistant for Solstice Learning.\n"
+            "Synthesize a helpful, conversational, and clear answer to the user's question using the provided context.\n"
+            "Feel free to explain the workflow clearly, format steps or bullet points, and include relevant tips from the text.\n"
+            "CRITICAL BOUNDARY: Base your answer strictly on the facts in the provided context. "
+            "If the documentation does not contain the answer, you must respond with: "
+            "\"I don't have an answer for that.\"\n\n"
+            f"Documentation Context:\n{context}\n\n"
+            f"User Question:\n{question}\n\n"
+            "Helpful Answer:"
         )
 
         payload = {
@@ -115,8 +116,8 @@ class GeminiClient:
                 }
             ],
             "generationConfig": {
-                "temperature": 0.0,
-                "maxOutputTokens": 200,
+                "temperature": 0.3,
+                "maxOutputTokens": 500,
             }
         }
         data = json.dumps(payload).encode("utf-8")
