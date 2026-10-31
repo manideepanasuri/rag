@@ -180,16 +180,31 @@ class DocsQAService:
                 "gemini_enabled": gemini_active,
             }
 
-        # Step 6: Generate answer (Deterministic extraction or Grounded LLM)
+        # Step 6: Assemble multi-chunk context for the matched document
+        # If other top-ranked chunks belong to the same document, combine them in document order
+        primary_doc_id = top_chunk["doc_id"]
+        doc_chunks = [
+            c for _, c in ranked
+            if c.get("doc_id") == primary_doc_id
+        ]
+        doc_chunks.sort(key=lambda x: x.get("chunk_index", 0))
+
+        assembled_parts = []
+        for c in doc_chunks:
+            if c["text"] not in assembled_parts:
+                assembled_parts.append(c["text"])
+        assembled_context = "\n\n".join(assembled_parts) if assembled_parts else top_chunk["text"]
+
+        # Step 7: Generate answer (Deterministic extraction or Grounded LLM)
         mode = "deterministic"
         llm_model_name = None
-        answer = extract_answer_pinpoint(clean_q, top_chunk["text"])
+        answer = extract_answer_pinpoint(clean_q, assembled_context)
 
         effective_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "")
         if use_llm:
             if effective_key:
                 grounded, model_used = self.llm_client.generate_grounded_answer_with_model(
-                    clean_q, top_chunk["text"], effective_key
+                    clean_q, assembled_context, effective_key
                 )
                 if grounded:
                     answer = grounded
@@ -206,7 +221,7 @@ class DocsQAService:
             "doc_id": top_chunk["doc_id"],
             "doc_title": top_chunk["title"],
             "confidence_score": round(top_score, 4),
-            "supporting_excerpt": top_chunk["text"],
+            "supporting_excerpt": assembled_context,
             "mode": mode,
             "llm_model": llm_model_name,
             "gemini_enabled": gemini_active,

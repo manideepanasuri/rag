@@ -14,7 +14,7 @@ class GeminiClient:
     Zero external SDK dependency.
     """
 
-    def __init__(self, timeout: float = 12.0):
+    def __init__(self, timeout: float = 7.0):
         self.timeout = timeout
 
     def get_embedding(self, text: str, api_key: str) -> list[float] | None:
